@@ -296,7 +296,7 @@
       <details style="margin-top:14px;">
         <summary>Where's Expert mode?</summary>
         <div class="details-body" style="margin-top:8px;">
-          On tmsearch.uspto.gov, look for the <strong>Basic / Expert</strong> toggle near the search box (top of the results/search panel). Switch to <strong>Expert</strong>, then paste the query above into the search bar and run it.
+          On tmsearch.uspto.gov, look for the <strong>Basic / Expert</strong> toggle near the search box (top of the results/search panel). Switch to <strong>Expert</strong>, then in the search-by dropdown choose <strong>"Field tag and search builder"</strong> specifically — other options (Wordmark, Owner, etc.) will reject this query's <code>CM:</code>/<code>IC:</code>/<code>LD:</code> syntax entirely. Paste the query above into the search bar and run it. No USPTO.gov login is required to search — logging in only adds an inline result-summary panel; without one, use the status-lookup box below (backed by TSDR) to check a specific result instead.
         </div>
       </details>
 
@@ -308,8 +308,16 @@
       </div>
 
       <div class="section-title">Also worth checking</div>
-      <div class="hint">Same idea, different form — reordered, joined, or pluralized. Not exhaustive, just the obvious near-misses.</div>
+      <div class="hint">Same idea, different form — reordered, joined, or pluralized. Not exhaustive, just the obvious near-misses. Check each of these separately — combining multiple phrases into one search on USPTO's site doesn't work the way you'd expect and can give a misleadingly high count.</div>
       <div class="variant-list" id="variantList"></div>
+
+      <div class="section-title" id="compoundTitle">Compound-word check</div>
+      <div class="hint" id="compoundHintText">If your phrase is typed as one run-together word, spacing it out can change results a lot.</div>
+      <div id="compoundHint"></div>
+
+      <div class="section-title">Sound-alike — same pronunciation, different spelling</div>
+      <div class="hint">Homophone substitutions worth a quick look — spelling alone can change how many live marks come back.</div>
+      <div class="variant-list" id="soundAlikeList"></div>
 
     </div>
   </div>
@@ -421,6 +429,69 @@ function generateVariants(phrase){
   return [...set].filter(v => v.toLowerCase() !== lower).slice(0, 10);
 }
 
+// ---------- Sound-alike (homophone) variants ----------
+// Deliberately small and conservative — common English homophone pairs relevant
+// to brand names. Not a phonetic algorithm (Soundex/Metaphone are out of scope
+// here on purpose, to avoid false-positive noise).
+const HOMOPHONE_GROUPS = [
+  ['made','maid'], ['for','four','fore'], ['to','too','two'],
+  ['right','write','rite'], ['night','knight'], ['buy','by','bye'],
+  ['sale','sail'], ['break','brake'], ['would','wood'], ['see','sea'],
+  ['one','won'], ['ate','eight'], ['bare','bear'], ['blue','blew'],
+  ['board','bored'], ['cell','sell'], ['cent','scent','sent'],
+  ['flower','flour'], ['hear','here'], ['hour','our'], ['knew','new'],
+  ['knot','not'], ['know','no'], ['mail','male'], ['meat','meet'],
+  ['pair','pear','pare'], ['peace','piece'], ['plain','plane'],
+  ['rain','reign','rein'], ['read','reed'], ['real','reel'],
+  ['road','rode','rowed'], ['role','roll'], ['rose','rows'],
+  ['scene','seen'], ['soar','sore'], ['some','sum'], ['son','sun'],
+  ['stair','stare'], ['steal','steel'], ['suite','sweet'], ['tail','tale'],
+  ['threw','through'], ['throne','thrown'], ['toe','tow'],
+  ['vain','vein','vane'], ['wait','weight'], ['waist','waste'],
+  ['ware','wear','where'], ['way','weigh'], ['weak','week'],
+  ['which','witch'], ['whole','hole'], ['wine','whine'],
+];
+const HOMOPHONE_MAP = {};
+HOMOPHONE_GROUPS.forEach(group => {
+  group.forEach(word => {
+    HOMOPHONE_MAP[word] = group.filter(w => w !== word);
+  });
+});
+
+function generateSoundAlikes(phrase){
+  const words = phrase.trim().split(/\s+/).filter(Boolean);
+  const lowerPhrase = phrase.toLowerCase();
+  const set = new Set();
+  words.forEach((word, i) => {
+    const alts = HOMOPHONE_MAP[word.toLowerCase()];
+    if(!alts) return;
+    alts.forEach(alt => {
+      const newWords = words.slice();
+      newWords[i] = alt;
+      const variant = newWords.join(' ');
+      if(variant.toLowerCase() !== lowerPhrase) set.add(variant);
+    });
+  });
+  return [...set].slice(0, 8);
+}
+
+// ---------- Compound-word (run-together) detection ----------
+// No dictionary-based segmentation here on purpose (see README roadmap) — this
+// only handles the two cases we can detect cheaply and reliably.
+function getCompoundHint(phrase){
+  const trimmed = phrase.trim();
+  if(/\s/.test(trimmed)) return null;
+  const camel = /[a-z][A-Z]/.test(trimmed);
+  if(camel){
+    const spaced = trimmed.replace(/([a-z])([A-Z])/g, '$1 $2');
+    return { type: 'auto', spaced };
+  }
+  if(trimmed.length >= 8 && /^[a-z]+$/.test(trimmed)){
+    return { type: 'advisory' };
+  }
+  return null;
+}
+
 // ---------- Query building ----------
 function buildMainQuery(phrase, classCodes, liveOnly){
   let q = `CM:"${phrase.toLowerCase()}"`;
@@ -469,6 +540,27 @@ function refreshQueries(){
   const liveOnly = document.getElementById('liveOnly').checked;
   document.getElementById('queryMain').textContent = buildMainQuery(currentPhrase, selectedClasses, liveOnly);
   document.getElementById('queryGS').textContent = buildGSQuery(currentPhrase);
+  renderVariants(currentPhrase);
+  renderSoundAlikes(currentPhrase);
+  renderCompoundHint(currentPhrase);
+}
+
+// Deliberately one query per variant, never combined via CM:(...) grouping —
+// verified that grouping multiple quoted phrases this way breaks phrase-exactness
+// on USPTO's system and produces misleadingly inflated result counts. Do not
+// "optimize" this into a single batched query.
+function renderVariantRow(list, text, query){
+  const row = document.createElement('div');
+  row.className = 'variant';
+  const label = document.createElement('span');
+  label.textContent = text;
+  row.appendChild(label);
+  const btn = document.createElement('button');
+  btn.className = 'ghost';
+  btn.textContent = 'Copy query';
+  btn.addEventListener('click', () => copyText(query, btn));
+  row.appendChild(btn);
+  list.appendChild(row);
 }
 
 function renderVariants(phrase){
@@ -479,20 +571,48 @@ function renderVariants(phrase){
     list.innerHTML = '<div class="hint">No obvious structural variants for a single word.</div>';
     return;
   }
+  const liveOnly = document.getElementById('liveOnly').checked;
   variants.forEach(v => {
-    const row = document.createElement('div');
-    row.className = 'variant';
-    const q = buildMainQuery(v, selectedClasses, document.getElementById('liveOnly').checked);
-    const label = document.createElement('span');
-    label.textContent = v;
-    row.appendChild(label);
-    const btn = document.createElement('button');
-    btn.className = 'ghost';
-    btn.textContent = 'Copy query';
-    btn.addEventListener('click', () => copyText(q, btn));
-    row.appendChild(btn);
-    list.appendChild(row);
+    renderVariantRow(list, v, buildMainQuery(v, selectedClasses, liveOnly));
   });
+}
+
+function renderSoundAlikes(phrase){
+  const list = document.getElementById('soundAlikeList');
+  list.innerHTML = '';
+  const variants = generateSoundAlikes(phrase);
+  if(variants.length === 0){
+    list.innerHTML = '<div class="hint">No sound-alike matches found for this phrase.</div>';
+    return;
+  }
+  const liveOnly = document.getElementById('liveOnly').checked;
+  variants.forEach(v => {
+    renderVariantRow(list, v, buildMainQuery(v, selectedClasses, liveOnly));
+  });
+}
+
+function renderCompoundHint(phrase){
+  const titleEl = document.getElementById('compoundTitle');
+  const hintTextEl = document.getElementById('compoundHintText');
+  const el = document.getElementById('compoundHint');
+  el.innerHTML = '';
+  const hint = getCompoundHint(phrase);
+  if(!hint){
+    titleEl.classList.add('hidden');
+    hintTextEl.classList.add('hidden');
+    return;
+  }
+  titleEl.classList.remove('hidden');
+  hintTextEl.classList.remove('hidden');
+  if(hint.type === 'auto'){
+    const liveOnly = document.getElementById('liveOnly').checked;
+    renderVariantRow(el, hint.spaced, buildMainQuery(hint.spaced, selectedClasses, liveOnly));
+    return;
+  }
+  const note = document.createElement('div');
+  note.className = 'note';
+  note.textContent = "This is one word with no space — if it's actually two words joined together, manually try the spaced-out version too. Spacing alone can change how many live marks come back by a wide margin, not just a few results.";
+  el.appendChild(note);
 }
 
 function copyText(text, btn){
@@ -513,7 +633,6 @@ document.getElementById('buildBtn').addEventListener('click', () => {
   const suggested = suggestClasses(desc);
   renderClassChips(suggested);
   refreshQueries();
-  renderVariants(phrase);
 
   document.getElementById('resultTicket').classList.remove('hidden');
   document.getElementById('resultTicket').scrollIntoView({ behavior: 'smooth', block: 'start' });
