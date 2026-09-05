@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Markstub — build your USPTO trademark search correctly</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&family=Public+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper: #F3EFE4;
+    --paper-2: #ECE6D6;
+    --ink: #1C2A44;
+    --ink-soft: #4A5670;
+    --rule: rgba(28,42,68,0.22);
+    --rust: #A6402E;
+    --rust-bg: #F3DCD5;
+    --green: #3C6B4A;
+    --green-bg: #DCE9DE;
+    --gold: #B8863B;
+    --shadow: 0 1px 0 rgba(28,42,68,0.35);
+  }
+  *{ box-sizing: border-box; }
+  html,body{ margin:0; padding:0; }
+  body{
+    background: var(--paper);
+    background-image:
+      linear-gradient(var(--paper-2) 1px, transparent 1px);
+    background-size: 100% 32px;
+    color: var(--ink);
+    font-family: 'Public Sans', -apple-system, sans-serif;
+    line-height: 1.5;
+    min-height: 100vh;
+  }
+  .wrap{ max-width: 760px; margin: 0 auto; padding: 48px 24px 80px; }
+
+  header{ margin-bottom: 40px; }
+  .kicker{
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    letter-spacing: 0.06em;
+    color: var(--ink-soft);
+    display:flex; align-items:center; gap: 10px;
+    margin-bottom: 10px;
+  }
+  .kicker .dot{ width:6px; height:6px; border-radius:50%; background: var(--rust); display:inline-block; }
+  h1{
+    font-family: 'Source Serif 4', serif;
+    font-weight: 700;
+    font-size: 40px;
+    margin: 0 0 8px;
+    letter-spacing: -0.01em;
+  }
+  .sub{
+    color: var(--ink-soft);
+    font-size: 16px;
+    max-width: 56ch;
+  }
+
+  .ticket{
+    background: #FCFAF3;
+    border: 1px solid var(--ink);
+    border-radius: 2px;
+    position: relative;
+    margin-bottom: 28px;
+    box-shadow: 3px 3px 0 rgba(28,42,68,0.10);
+  }
+  .ticket::before{
+    content:"";
+    position:absolute; left:0; right:0; top:0; height:4px;
+    background: repeating-linear-gradient(90deg, var(--ink) 0 8px, transparent 8px 16px);
+    opacity: 0.5;
+  }
+  .ticket-head{
+    display:flex; justify-content: space-between; align-items:baseline;
+    padding: 18px 24px 0;
+  }
+  .ticket-label{
+    font-family:'IBM Plex Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    color: var(--ink-soft);
+    text-transform: uppercase;
+  }
+  .ticket-no{
+    font-family:'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--ink-soft);
+  }
+  .ticket-body{ padding: 16px 24px 24px; }
+
+  label{
+    display:block;
+    font-size: 13px;
+    font-weight: 600;
+    margin-bottom: 6px;
+    color: var(--ink);
+  }
+  .hint{ font-size: 12.5px; color: var(--ink-soft); margin: -2px 0 8px; }
+  input[type=text]{
+    width:100%;
+    font-family: 'Public Sans', sans-serif;
+    font-size: 15px;
+    padding: 10px 12px;
+    border: 1px solid var(--rule);
+    border-bottom: 2px solid var(--ink);
+    border-radius: 2px;
+    background: #fff;
+    color: var(--ink);
+  }
+  input[type=text]:focus{ outline: 2px solid var(--gold); outline-offset: 1px; }
+  .field{ margin-bottom: 16px; }
+  .row2{ display:grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 600px){ .row2{ grid-template-columns: 1fr; } }
+
+  button.primary{
+    font-family:'IBM Plex Mono', monospace;
+    font-size: 13px;
+    letter-spacing: 0.03em;
+    background: var(--ink);
+    color: var(--paper);
+    border: none;
+    padding: 12px 20px;
+    border-radius: 2px;
+    cursor: pointer;
+  }
+  button.primary:hover{ background: #0f1930; }
+  button.ghost{
+    font-family:'IBM Plex Mono', monospace;
+    font-size: 12px;
+    background: transparent;
+    color: var(--ink);
+    border: 1px solid var(--ink);
+    padding: 6px 10px;
+    border-radius: 2px;
+    cursor: pointer;
+  }
+  button.ghost:hover{ background: var(--ink); color: var(--paper); }
+  button.ghost.copied{ background: var(--green); border-color: var(--green); color: #fff; }
+
+  .chips{ display:flex; flex-wrap:wrap; gap: 8px; margin-top: 4px; }
+  .chip{
+    font-family:'IBM Plex Mono', monospace;
+    font-size: 12.5px;
+    border: 1px solid var(--ink);
+    padding: 6px 10px;
+    border-radius: 20px;
+    cursor: pointer;
+    background: #fff;
+    user-select: none;
+  }
+  .chip.selected{ background: var(--ink); color: var(--paper); }
+  .chip .code{ font-weight: 700; }
+
+  .out-row{
+    display:flex; align-items:center; gap: 10px;
+    background: #fff;
+    border: 1px solid var(--rule);
+    border-radius: 2px;
+    padding: 10px 12px;
+    margin-bottom: 10px;
+  }
+  .out-row code{
+    flex:1;
+    font-family:'IBM Plex Mono', monospace;
+    font-size: 13px;
+    word-break: break-word;
+    color: var(--ink);
+  }
+
+  .section-title{
+    font-family:'IBM Plex Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+    margin: 22px 0 8px;
+    border-top: 1px dashed var(--rule);
+    padding-top: 16px;
+  }
+  .section-title:first-child{ border-top:none; padding-top:0; margin-top:0; }
+
+  .open-link{
+    display:inline-flex; align-items:center; gap:8px;
+    font-family:'IBM Plex Mono', monospace;
+    font-size: 13px;
+    background: var(--gold);
+    color: #fff;
+    text-decoration:none;
+    padding: 10px 16px;
+    border-radius: 2px;
+    margin-top: 4px;
+  }
+  .open-link:hover{ background:#9c7132; }
+
+  .variant-list{ display:flex; flex-direction:column; gap:6px; }
+  .variant{
+    display:flex; align-items:center; justify-content:space-between; gap:10px;
+    background:#fff; border:1px solid var(--rule); border-radius:2px;
+    padding: 8px 12px;
+    font-family:'IBM Plex Mono', monospace;
+    font-size: 13px;
+  }
+
+  .toggle-row{ display:flex; align-items:center; gap:8px; margin: 10px 0 4px; }
+  .toggle-row label{ margin:0; font-size:13px; font-weight:500; }
+
+  .note{
+    font-size: 12.5px;
+    color: var(--ink-soft);
+    background: var(--rust-bg);
+    border-left: 3px solid var(--rust);
+    padding: 10px 12px;
+    border-radius: 2px;
+    margin-top: 12px;
+  }
+  .note.good{ background: var(--green-bg); border-left-color: var(--green); }
+
+  details summary{
+    cursor:pointer; font-size: 13px; color: var(--ink-soft);
+    font-family:'IBM Plex Mono', monospace;
+  }
+  details[open] summary{ margin-bottom: 8px; }
+  .details-body{ font-size: 13.5px; color: var(--ink-soft); }
+  .details-body code{ background:#fff; padding:1px 5px; border-radius:2px; border:1px solid var(--rule); }
+
+  .status-row{ display:flex; gap: 10px; }
+  .status-row input{ flex:1; }
+
+  footer{
+    margin-top: 40px;
+    padding-top: 20px;
+    border-top: 1px solid var(--rule);
+    font-size: 12.5px;
+    color: var(--ink-soft);
+  }
+  footer strong{ color: var(--ink); }
+
+  .hidden{ display:none !important; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="kicker"><span class="dot"></span>SEARCH ASSISTANT — NOT LEGAL ADVICE</div>
+    <h1>Markstub</h1>
+    <p class="sub">USPTO's own search treats a phrase as separate words unless you know the exact syntax. This builds the correct query for you — exact phrase, right class, close variants — so you can look at the results and decide for yourself.</p>
+  </header>
+
+  <!-- INPUT TICKET -->
+  <div class="ticket">
+    <div class="ticket-head">
+      <span class="ticket-label">Step 1 — your mark</span>
+      <span class="ticket-no">No. 001</span>
+    </div>
+    <div class="ticket-body">
+      <div class="field">
+        <label for="phrase">Brand name or phrase</label>
+        <div class="hint">Exactly as you'd use it — e.g. "sunrise bakery"</div>
+        <input type="text" id="phrase" placeholder="sunrise bakery">
+      </div>
+      <div class="field">
+        <label for="desc">In one line, what do you sell or do?</label>
+        <div class="hint">Used only to suggest a starting class — you can change it</div>
+        <input type="text" id="desc" placeholder="a software platform for scheduling appointments">
+      </div>
+      <button class="primary" id="buildBtn">Build search →</button>
+    </div>
+  </div>
+
+  <!-- OUTPUT TICKET -->
+  <div class="ticket hidden" id="resultTicket">
+    <div class="ticket-head">
+      <span class="ticket-label">Step 2 — your search</span>
+      <span class="ticket-no">No. 002</span>
+    </div>
+    <div class="ticket-body">
+
+      <div class="section-title">Suggested class</div>
+      <div class="hint">A starting guess from your description, not a legal classification. Toggle any that fit — you can select more than one.</div>
+      <div class="chips" id="classChips"></div>
+
+      <div class="section-title">Exact-phrase query</div>
+      <div class="hint">Paste this into <strong>Expert mode</strong> at tmsearch.uspto.gov — not the plain search box, which splits your phrase into separate words.</div>
+      <div class="toggle-row">
+        <input type="checkbox" id="liveOnly" checked>
+        <label for="liveOnly">Live marks only</label>
+      </div>
+      <div class="out-row">
+        <code id="queryMain">—</code>
+        <button class="ghost" data-copy-target="queryMain">Copy</button>
+      </div>
+      <a class="open-link" id="openLink" href="https://tmsearch.uspto.gov" target="_blank" rel="noopener">Open USPTO Expert Search →</a>
+
+      <details style="margin-top:14px;">
+        <summary>Where's Expert mode?</summary>
+        <div class="details-body" style="margin-top:8px;">
+          On tmsearch.uspto.gov, look for the <strong>Basic / Expert</strong> toggle near the search box (top of the results/search panel). Switch to <strong>Expert</strong>, then paste the query above into the search bar and run it.
+        </div>
+      </details>
+
+      <div class="section-title">Also search within goods &amp; services text</div>
+      <div class="hint">Catches marks where your phrase shows up in the description, not just the name itself.</div>
+      <div class="out-row">
+        <code id="queryGS">—</code>
+        <button class="ghost" data-copy-target="queryGS">Copy</button>
+      </div>
+
+      <div class="section-title">Also worth checking</div>
+      <div class="hint">Same idea, different form — reordered, joined, or pluralized. Not exhaustive, just the obvious near-misses.</div>
+      <div class="variant-list" id="variantList"></div>
+
+    </div>
+  </div>
+
+  <!-- STATUS LOOKUP TICKET -->
+  <div class="ticket">
+    <div class="ticket-head">
+      <span class="ticket-label">Bonus — check a specific mark</span>
+      <span class="ticket-no">No. 003</span>
+    </div>
+    <div class="ticket-body">
+      <label for="caseNum">Serial or registration number</label>
+      <div class="hint">If a search result gives you a number, jump straight to its status page</div>
+      <div class="status-row">
+        <input type="text" id="caseNum" placeholder="e.g. 90866054">
+        <button class="primary" id="statusBtn">Check status →</button>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    <strong>Markstub</strong> is a search-assistance tool, not legal advice. It formats your search correctly and links you to USPTO's own systems — it doesn't file anything, and it doesn't tell you whether it's safe to use a mark. Confirm anything close on <a href="https://tmsearch.uspto.gov" target="_blank" rel="noopener">tmsearch.uspto.gov</a> directly before making a decision.
+  </footer>
+
+</div>
+
+<script>
+// ---------- Nice class heuristic dictionary ----------
+// Not authoritative. Starting point only — confirm against the USPTO ID Manual.
+const CLASS_MAP = [
+  { code: '009', label: 'Software, apps & electronics', kws: ['software','app','application','hardware','electronics','device','gadget','computer','sensor','wearable','firmware','ai model'] },
+  { code: '042', label: 'Tech & software services (SaaS)', kws: ['saas','platform','cloud','hosting','api','tech services','software development','website design','it consulting','technology services','coding','engineering services','software as a service'] },
+  { code: '035', label: 'Advertising, retail & business services', kws: ['marketing','advertising','retail','online store','ecommerce','e-commerce','shop','consulting','business services','staffing','recruiting','sales'] },
+  { code: '036', label: 'Finance, insurance & real estate', kws: ['finance','financial','insurance','bank','investment','fintech','real estate','mortgage','payments'] },
+  { code: '037', label: 'Construction & repair', kws: ['construction','contractor','repair','renovation','plumbing','electrician','installation','roofing'] },
+  { code: '038', label: 'Telecommunications', kws: ['telecom','messaging app','broadcasting','communications network'] },
+  { code: '039', label: 'Transportation, delivery & travel', kws: ['delivery','shipping','logistics','transportation','travel agency','moving company','courier'] },
+  { code: '041', label: 'Education, training & entertainment', kws: ['education','training','coaching','course','tutoring','entertainment','event planning','media production','publishing content','podcast','content creation','streaming'] },
+  { code: '043', label: 'Restaurants, food service & lodging', kws: ['restaurant','cafe','catering','food truck','bar','hotel','lodging','bakery shop'] },
+  { code: '044', label: 'Medical, wellness & beauty services', kws: ['healthcare','clinic','therapy','medical','salon','spa','wellness','veterinary','dental','yoga studio'] },
+  { code: '045', label: 'Legal & personal/security services', kws: ['legal','law firm','attorney','security services','personal services','dating service','social services'] },
+  { code: '025', label: 'Clothing & footwear', kws: ['clothing','apparel','shoes','footwear','hats','fashion brand'] },
+  { code: '018', label: 'Bags & leather goods', kws: ['bags','luggage','wallet','leather goods'] },
+  { code: '014', label: 'Jewelry & watches', kws: ['jewelry','watches'] },
+  { code: '020', label: 'Furniture', kws: ['furniture'] },
+  { code: '021', label: 'Household & kitchen goods', kws: ['kitchenware','household goods','cookware'] },
+  { code: '028', label: 'Toys, games & sporting goods', kws: ['toys','games','sporting goods','fitness equipment'] },
+  { code: '003', label: 'Cosmetics & personal care', kws: ['cosmetics','skincare','makeup','personal care'] },
+  { code: '005', label: 'Supplements & pharmaceuticals', kws: ['supplements','pharmaceuticals','vitamins'] },
+  { code: '010', label: 'Medical devices', kws: ['medical device','surgical instruments'] },
+  { code: '030', label: 'Coffee, bakery goods & snacks', kws: ['coffee','bakery products','snacks','spices','tea'] },
+  { code: '029', label: 'Meat, dairy & prepared foods', kws: ['meat','dairy','prepared foods'] },
+  { code: '032', label: 'Non-alcoholic beverages', kws: ['beverages','soda','juice','energy drink'] },
+  { code: '033', label: 'Alcoholic beverages', kws: ['beer','wine','spirits','alcohol'] },
+  { code: '016', label: 'Printed matter & stationery', kws: ['books','printed matter','stationery','magazine'] },
+  { code: '012', label: 'Vehicles', kws: ['vehicles','cars','bicycles','automotive parts'] },
+];
+
+function suggestClasses(desc){
+  const d = desc.toLowerCase();
+  const scored = CLASS_MAP.map(c => {
+    const hits = c.kws.filter(k => d.includes(k)).length;
+    return { ...c, hits };
+  }).filter(c => c.hits > 0);
+  scored.sort((a,b) => b.hits - a.hits);
+  return scored.slice(0, 4);
+}
+
+// ---------- Variant generation ----------
+function permute(arr){
+  if(arr.length <= 1) return [arr];
+  const out = [];
+  arr.forEach((item, i) => {
+    const rest = arr.slice(0,i).concat(arr.slice(i+1));
+    permute(rest).forEach(p => out.push([item, ...p]));
+  });
+  return out;
+}
+
+function generateVariants(phrase){
+  const words = phrase.trim().split(/\s+/).filter(Boolean);
+  const set = new Set();
+  const lower = phrase.toLowerCase();
+
+  if(words.length > 1){
+    set.add(words.slice().reverse().join(' '));
+  }
+  if(words.length >= 2 && words.length <= 4){
+    permute(words).forEach(p => set.add(p.join(' ')));
+  }
+  if(/\band\b/i.test(phrase)) set.add(phrase.replace(/\band\b/i, '&'));
+  if(/&/.test(phrase)) set.add(phrase.replace(/&/, 'and'));
+  if(/\bfor\b/i.test(phrase)) set.add(phrase.replace(/\bfor\b/i, '4'));
+
+  set.add(words.join('-'));
+  set.add(words.join(''));
+
+  const last = words[words.length - 1] || '';
+  if(last){
+    const rest = words.slice(0,-1);
+    if(last.toLowerCase().endsWith('s')){
+      set.add([...rest, last.slice(0,-1)].join(' '));
+    } else {
+      set.add([...rest, last + 's'].join(' '));
+    }
+  }
+
+  set.delete(phrase);
+  return [...set].filter(v => v.toLowerCase() !== lower).slice(0, 10);
+}
+
+// ---------- Query building ----------
+function buildMainQuery(phrase, classCodes, liveOnly){
+  let q = `CM:"${phrase.toLowerCase()}"`;
+  if(classCodes.length === 1){
+    q += ` AND IC:${classCodes[0]}`;
+  } else if(classCodes.length > 1){
+    q += ` AND IC:(${classCodes.join(' ')})`;
+  }
+  if(liveOnly) q += ` AND LD:true`;
+  return q;
+}
+function buildGSQuery(phrase){
+  return `GS:"${phrase.toLowerCase()}"`;
+}
+
+// ---------- State ----------
+let selectedClasses = [];
+let currentPhrase = '';
+
+function renderClassChips(suggested){
+  const wrap = document.getElementById('classChips');
+  wrap.innerHTML = '';
+  if(suggested.length === 0){
+    const p = document.createElement('div');
+    p.className = 'hint';
+    p.textContent = "No suggestion from that description — pick a class yourself using the USPTO ID Manual, or search without one first.";
+    wrap.appendChild(p);
+    return;
+  }
+  suggested.forEach((c, i) => {
+    const chip = document.createElement('div');
+    chip.className = 'chip' + (i === 0 ? ' selected' : '');
+    chip.innerHTML = `<span class="code">${c.code}</span> — ${c.label}`;
+    chip.dataset.code = c.code;
+    if(i === 0) selectedClasses = [c.code];
+    chip.addEventListener('click', () => {
+      chip.classList.toggle('selected');
+      selectedClasses = [...wrap.querySelectorAll('.chip.selected')].map(el => el.dataset.code);
+      refreshQueries();
+    });
+    wrap.appendChild(chip);
+  });
+}
+
+function refreshQueries(){
+  const liveOnly = document.getElementById('liveOnly').checked;
+  document.getElementById('queryMain').textContent = buildMainQuery(currentPhrase, selectedClasses, liveOnly);
+  document.getElementById('queryGS').textContent = buildGSQuery(currentPhrase);
+}
+
+function renderVariants(phrase){
+  const list = document.getElementById('variantList');
+  list.innerHTML = '';
+  const variants = generateVariants(phrase);
+  if(variants.length === 0){
+    list.innerHTML = '<div class="hint">No obvious structural variants for a single word.</div>';
+    return;
+  }
+  variants.forEach(v => {
+    const row = document.createElement('div');
+    row.className = 'variant';
+    const q = buildMainQuery(v, selectedClasses, document.getElementById('liveOnly').checked);
+    row.innerHTML = `<span>${v}</span>`;
+    const btn = document.createElement('button');
+    btn.className = 'ghost';
+    btn.textContent = 'Copy query';
+    btn.addEventListener('click', () => copyText(q, btn));
+    row.appendChild(btn);
+    list.appendChild(row);
+  });
+}
+
+function copyText(text, btn){
+  navigator.clipboard.writeText(text).then(() => {
+    const original = btn.textContent;
+    btn.textContent = 'Copied';
+    btn.classList.add('copied');
+    setTimeout(() => { btn.textContent = original; btn.classList.remove('copied'); }, 1200);
+  });
+}
+
+document.getElementById('buildBtn').addEventListener('click', () => {
+  const phrase = document.getElementById('phrase').value.trim();
+  const desc = document.getElementById('desc').value.trim();
+  if(!phrase) return;
+  currentPhrase = phrase;
+
+  const suggested = suggestClasses(desc);
+  renderClassChips(suggested);
+  refreshQueries();
+  renderVariants(phrase);
+
+  document.getElementById('resultTicket').classList.remove('hidden');
+  document.getElementById('resultTicket').scrollIntoView({ behavior: 'smooth', block: 'start' });
+});
+
+document.getElementById('liveOnly').addEventListener('change', refreshQueries);
+
+document.querySelectorAll('[data-copy-target]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const id = btn.getAttribute('data-copy-target');
+    copyText(document.getElementById(id).textContent, btn);
+  });
+});
+
+document.getElementById('statusBtn').addEventListener('click', () => {
+  const num = document.getElementById('caseNum').value.trim();
+  if(!num) return;
+  const caseType = num.length >= 8 ? 'SERIAL_NO' : 'REGISTRATION_NO';
+  const url = `https://tsdr.uspto.gov/#caseNumber=${encodeURIComponent(num)}&caseType=${caseType}&searchType=statusSearch`;
+  window.open(url, '_blank');
+});
+
+// allow Enter key to submit
+['phrase','desc'].forEach(id => {
+  document.getElementById(id).addEventListener('keydown', e => {
+    if(e.key === 'Enter') document.getElementById('buildBtn').click();
+  });
+});
+document.getElementById('caseNum').addEventListener('keydown', e => {
+  if(e.key === 'Enter') document.getElementById('statusBtn').click();
+});
+</script>
+</body>
+</html>
