@@ -483,7 +483,9 @@ function renderVariants(phrase){
     const row = document.createElement('div');
     row.className = 'variant';
     const q = buildMainQuery(v, selectedClasses, document.getElementById('liveOnly').checked);
-    row.innerHTML = `<span>${v}</span>`;
+    const label = document.createElement('span');
+    label.textContent = v;
+    row.appendChild(label);
     const btn = document.createElement('button');
     btn.className = 'ghost';
     btn.textContent = 'Copy query';
@@ -529,8 +531,8 @@ document.querySelectorAll('[data-copy-target]').forEach(btn => {
 document.getElementById('statusBtn').addEventListener('click', () => {
   const num = document.getElementById('caseNum').value.trim();
   if(!num) return;
-  const caseType = num.length >= 8 ? 'SERIAL_NO' : 'REGISTRATION_NO';
-  const url = `https://tsdr.uspto.gov/#caseNumber=${encodeURIComponent(num)}&caseType=${caseType}&searchType=statusSearch`;
+  const caseSearchType = num.length >= 8 ? 'US_APPLICATION' : 'US_REGISTRATION';
+  const url = `https://tsdr.uspto.gov/#caseNumber=${encodeURIComponent(num)}&caseSearchType=${caseSearchType}&caseType=DEFAULT&searchType=statusSearch`;
   window.open(url, '_blank');
 });
 

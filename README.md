@@ -50,16 +50,6 @@ Not legal advice, not a substitute for professional review before filing, and no
 live database — every actual search happens on USPTO's own site, in your browser,
 using the query this tool built for you.
 
-## Known issues
-
-- `renderVariants()` inserts the user's phrase into the DOM via `innerHTML` instead of
-  `textContent` — a phrase containing HTML/script tags can execute in the page. Needs
-  a fix before this is exposed to untrusted input.
-- The `tsdr.uspto.gov` deep-link format (`caseType=SERIAL_NO` / `REGISTRATION_NO`) is
-  unverified against the live site; a real TSDR example uses `caseType=DEFAULT` plus a
-  separate `caseSearchType` parameter. Confirm the actual URL shape before relying on
-  the "Check status" button.
-
 ## Roadmap ideas (open to contributions)
 
 - Expand `CLASS_MAP` coverage / pull from the real ID Manual data
