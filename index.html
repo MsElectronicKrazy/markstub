@@ -55,20 +55,19 @@
   header h1{ color: var(--paper); }
   header .sub{ color: var(--paper); opacity: 0.78; }
 
-  .content{ position: relative; }
-  .content::before{
+  .wrap::before{
     content:"";
     position:absolute; top:0; bottom:0; left:56px;
     width:2px; background: var(--accent);
   }
-  .content::after{
+  .wrap::after{
     content:"";
     position:absolute; top:0; bottom:0; left:66px;
     width:1px; background: var(--accent); opacity:0.35;
   }
   @media (max-width: 600px){
-    .content::before{ left:20px; }
-    .content::after{ display:none; }
+    .wrap::before{ left:20px; }
+    .wrap::after{ display:none; }
   }
   .kicker{
     font-family: 'IBM Plex Mono', monospace;
