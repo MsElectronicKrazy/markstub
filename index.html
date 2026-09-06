@@ -40,11 +40,42 @@
   a:hover{ color: var(--ink); }
 
   header{
-    margin: -48px -24px 40px;
-    padding: 40px 24px 24px;
+    position: relative;
+    left: 50%;
+    width: 100vw;
+    margin-left: -50vw;
+    margin-top: -48px;
+    margin-bottom: 40px;
+    padding: 22px 0 16px;
     background: var(--paper-2);
-    border-top: 3px solid var(--ink);
-    border-bottom: 2px solid var(--ink);
+    border-bottom: 3px solid var(--ink);
+    box-shadow: 0 3px 0 var(--accent);
+  }
+  header::before{
+    content:"";
+    position:absolute; top:0; left:0; right:0; height:9px;
+    background: repeating-radial-gradient(circle at 11px 4px, var(--ink) 0 2.2px, transparent 2.8px 22px);
+    opacity:0.55;
+  }
+  .header-inner{
+    max-width: 760px;
+    margin: 0 auto;
+    padding: 8px 24px 0;
+    box-sizing: border-box;
+  }
+  .content{
+    position: relative;
+    padding-left: 22px;
+  }
+  .content::before{
+    content:"";
+    position:absolute; top:0; bottom:0; left:2px;
+    width:2px; background: var(--accent); opacity:0.7;
+  }
+  .content::after{
+    content:"";
+    position:absolute; top:0; bottom:0; left:9px;
+    width:1px; background: var(--accent); opacity:0.3;
   }
   .kicker{
     font-family: 'IBM Plex Mono', monospace;
@@ -258,10 +289,14 @@
 <div class="wrap">
 
   <header>
-    <div class="kicker"><span class="dot"></span>SEARCH ASSISTANT — NOT LEGAL ADVICE</div>
-    <h1>Markstub</h1>
-    <p class="sub">USPTO's own search treats a phrase as separate words unless you know the exact syntax. This builds the correct query for you — exact phrase, right class, close variants — so you can look at the results and decide for yourself.</p>
+    <div class="header-inner">
+      <div class="kicker"><span class="dot"></span>SEARCH ASSISTANT — NOT LEGAL ADVICE</div>
+      <h1>Markstub</h1>
+      <p class="sub">USPTO's own search treats a phrase as separate words unless you know the exact syntax. This builds the correct query for you — exact phrase, right class, close variants — so you can look at the results and decide for yourself.</p>
+    </div>
   </header>
+
+  <div class="content">
 
   <!-- INPUT TICKET -->
   <div class="ticket">
@@ -355,6 +390,8 @@
         <button class="primary" id="statusBtn">Check status →</button>
       </div>
     </div>
+  </div>
+
   </div>
 
   <footer>
