@@ -319,6 +319,10 @@
       <div class="hint">Homophone substitutions worth a quick look — spelling alone can change how many live marks come back.</div>
       <div class="variant-list" id="soundAlikeList"></div>
 
+      <div class="section-title">Stylized — common startup-naming substitutions (k/c, z/s, dropped vowels)</div>
+      <div class="hint">Deliberate stylized spelling — not a different word or a reordering, just a letter swapped or dropped the way brand names often do.</div>
+      <div class="variant-list" id="stylizedList"></div>
+
     </div>
   </div>
 
@@ -478,6 +482,60 @@ function generateSoundAlikes(phrase){
   return [...set].slice(0, 8);
 }
 
+// ---------- Stylized-spelling variants ----------
+// Deliberately narrow, letter-level substitutions distinct from HOMOPHONES
+// (different whole words, same sound) and generateVariants (structural
+// transforms on existing word boundaries). This is the "electronicKRAZY",
+// "stylez", "makr" class of brand-naming spelling.
+function kcSingleSwaps(word){
+  // Only a single-letter c<->k swap, and only where it wouldn't change the
+  // sound: skip 'c' before e/i/y (soft c) and skip 'k' before e/i/y (swapping
+  // to c there would turn a hard k into a soft c). Anything needing more than
+  // a 1:1 letter swap (e.g. "quick" -> "kwik") is out of scope on purpose.
+  const out = [];
+  for(let i = 0; i < word.length; i++){
+    const lower = word[i].toLowerCase();
+    const next = (word[i + 1] || '').toLowerCase();
+    if(next === 'e' || next === 'i' || next === 'y') continue;
+    if(lower === 'c') out.push(word.slice(0, i) + 'k' + word.slice(i + 1));
+    else if(lower === 'k') out.push(word.slice(0, i) + 'c' + word.slice(i + 1));
+  }
+  return out;
+}
+function szTrailingSwap(word){
+  // Trailing s<->z only (styles/stylez, kids/kidz) — not mid-word.
+  if(/s$/i.test(word)) return word.slice(0, -1) + 'z';
+  if(/z$/i.test(word)) return word.slice(0, -1) + 's';
+  return null;
+}
+function vowelDropVariants(word){
+  // One variant per single vowel occurrence removed — never multiple at once.
+  if(word.length < 4) return [];
+  const out = [];
+  for(let i = 0; i < word.length; i++){
+    if(/[aeiou]/i.test(word[i])) out.push(word.slice(0, i) + word.slice(i + 1));
+  }
+  return out;
+}
+function generateStylizedVariants(phrase){
+  const words = phrase.trim().split(/\s+/).filter(Boolean);
+  const lowerPhrase = phrase.toLowerCase();
+  const set = new Set();
+  words.forEach((word, i) => {
+    const candidates = [...kcSingleSwaps(word), ...vowelDropVariants(word)];
+    const sz = szTrailingSwap(word);
+    if(sz) candidates.push(sz);
+    candidates.forEach(cand => {
+      if(cand === word) return;
+      const newWords = words.slice();
+      newWords[i] = cand;
+      const variant = newWords.join(' ');
+      if(variant.toLowerCase() !== lowerPhrase) set.add(variant);
+    });
+  });
+  return [...set].slice(0, 8);
+}
+
 // ---------- Compound-word (run-together) detection ----------
 // No dictionary-based segmentation here on purpose (see README roadmap) — this
 // only handles the two cases we can detect cheaply and reliably.
@@ -545,6 +603,7 @@ function refreshQueries(){
   document.getElementById('queryGS').textContent = buildGSQuery(currentPhrase);
   renderVariants(currentPhrase);
   renderSoundAlikes(currentPhrase);
+  renderStylized(currentPhrase);
   renderCompoundHint(currentPhrase);
 }
 
@@ -586,6 +645,20 @@ function renderSoundAlikes(phrase){
   const variants = generateSoundAlikes(phrase);
   if(variants.length === 0){
     list.innerHTML = '<div class="hint">No sound-alike matches found for this phrase.</div>';
+    return;
+  }
+  const liveOnly = document.getElementById('liveOnly').checked;
+  variants.forEach(v => {
+    renderVariantRow(list, v, buildMainQuery(v, selectedClasses, liveOnly));
+  });
+}
+
+function renderStylized(phrase){
+  const list = document.getElementById('stylizedList');
+  list.innerHTML = '';
+  const variants = generateStylizedVariants(phrase);
+  if(variants.length === 0){
+    list.innerHTML = '<div class="hint">No stylized-spelling variants found for this phrase.</div>';
     return;
   }
   const liveOnly = document.getElementById('liveOnly').checked;
