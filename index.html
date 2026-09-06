@@ -42,13 +42,8 @@
   header{
     position: relative;
     background: var(--ink);
-    padding: 28px 0 22px;
-  }
-  header::after{
-    content:"";
-    position:absolute; left:0; right:0; bottom:-2px; height:4px;
-    background: repeating-linear-gradient(90deg, var(--paper) 0 8px, transparent 8px 16px);
-    opacity: 0.6;
+    padding: 16px 0 12px;
+    border-bottom: 3px solid var(--accent);
   }
   .header-inner{
     max-width: 640px;
@@ -66,8 +61,14 @@
     position:absolute; top:0; bottom:0; left:56px;
     width:2px; background: var(--accent);
   }
+  .content::after{
+    content:"";
+    position:absolute; top:0; bottom:0; left:66px;
+    width:1px; background: var(--accent); opacity:0.35;
+  }
   @media (max-width: 600px){
     .content::before{ left:20px; }
+    .content::after{ display:none; }
   }
   .kicker{
     font-family: 'IBM Plex Mono', monospace;
