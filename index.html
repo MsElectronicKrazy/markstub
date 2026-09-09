@@ -40,6 +40,7 @@
     font-family: 'Public Sans', -apple-system, sans-serif;
     line-height: 1.5;
     min-height: 100vh;
+    position: relative;
   }
   .wrap{ max-width: 640px; margin: 0 auto; padding: 48px var(--wrap-pad-h) 80px; position: relative; }
   a{ color: var(--accent); }
@@ -61,16 +62,16 @@
   header h1{ color: var(--paper); }
   header .sub{ color: var(--paper); opacity: 0.78; }
 
-  .wrap::before{
+  body::before{
     content:"";
     position:absolute; top:0; bottom:0;
-    left: 2px;
+    left: clamp(20px, 8vw, 220px);
     width:2px; background: var(--accent);
   }
-  .wrap::after{
+  body::after{
     content:"";
     position:absolute; top:0; bottom:0;
-    right: 2px;
+    right: clamp(20px, 8vw, 220px);
     width:1px; background: var(--accent); opacity:0.35;
   }
   .kicker{
