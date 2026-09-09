@@ -1,0 +1,24 @@
+# Environment / secrets
+.env
+.env.*
+!.env.example
+
+# OS junk
+.DS_Store
+Thumbs.db
+
+# Editor / IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Local tooling artifacts (icon/image generation scripts, venvs, etc.)
+__pycache__/
+*.pyc
+venv/
+.venv/
+node_modules/
+
+# Logs
+*.log
