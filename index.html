@@ -3,7 +3,32 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Markstub — build your USPTO trademark search correctly</title>
+<title>Markstub — exact-phrase USPTO trademark search assistant</title>
+<meta name="description" content="Markstub builds exact-phrase USPTO trademark search queries so you're not fighting the basic search box's word-splitting behavior. Free, open-source, not a substitute for legal advice.">
+<link rel="canonical" href="https://mselectronickrazy.github.io/markstub/">
+
+<meta property="og:type" content="website">
+<meta property="og:title" content="Markstub — exact-phrase USPTO trademark search assistant">
+<meta property="og:description" content="Free tool that builds exact-phrase USPTO search queries instead of letting the basic search box split your phrase into separate words.">
+<meta property="og:url" content="https://mselectronickrazy.github.io/markstub/">
+<meta property="og:image" content="https://mselectronickrazy.github.io/markstub/assets/og-image.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Markstub — exact-phrase USPTO trademark search assistant">
+<meta name="twitter:description" content="Free tool that builds exact-phrase USPTO search queries instead of letting the basic search box split your phrase into separate words.">
+<meta name="twitter:image" content="https://mselectronickrazy.github.io/markstub/assets/og-image.png">
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "Markstub",
+  "applicationCategory": "UtilitiesApplication",
+  "operatingSystem": "Any (web-based)",
+  "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+  "description": "Free tool that builds exact-phrase USPTO trademark search queries, addressing the basic search box's word-splitting behavior. Not a substitute for legal advice."
+}
+</script>
+
 <link rel="icon" type="image/png" sizes="48x48" href="assets/favicon-48x48.png">
 <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32x32.png">
 <link rel="icon" type="image/png" sizes="16x16" href="assets/favicon-16x16.png">
@@ -219,6 +244,14 @@
   }
   .section-title:first-child{ border-top:none; padding-top:0; margin-top:0; }
 
+  .intro{
+    color: var(--ink-soft);
+    font-size: 14.5px;
+    line-height: 1.6;
+    max-width: 60ch;
+    margin: 0 0 24px;
+  }
+
   .open-link{
     display:inline-flex; align-items:center; gap:8px;
     font-family:'IBM Plex Mono', monospace;
@@ -294,6 +327,8 @@
 <div class="wrap">
 
   <div class="content">
+
+  <p class="intro">USPTO's basic trademark search splits your phrase into separate words instead of searching it exactly, which can bury the mark you're looking for in a wall of unrelated results. Markstub builds the correct exact-phrase query for you — right field tags, right syntax — so you can paste it straight into Expert Mode and see what's actually out there.</p>
 
   <!-- INPUT TICKET -->
   <div class="ticket">

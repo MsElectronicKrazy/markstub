@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://mselectronickrazy.github.io/markstub/sitemap.xml
