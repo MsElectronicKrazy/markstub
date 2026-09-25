@@ -12,7 +12,8 @@
   },
   "license": "MIT",
   "scripts": {
-    "dev": "npx --yes serve . -l 3000"
+    "dev": "npx --yes serve . -l 3000",
+    "test": "node tests/suggest-classes.test.js"
   },
   "author": "Michelle O. Daniel",
   "private": true

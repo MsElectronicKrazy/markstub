@@ -476,18 +476,69 @@ const CLASS_MAP = [
   { code: '033', label: 'Alcoholic beverages (except beer)', kws: ['wine','spirits','alcohol','liquor','whiskey','vodka','rum','gin','cocktails','hard seltzer','cider','fortified wines','liqueurs','sake'] },
   { code: '016', label: 'Printed matter, stationery & office supplies', kws: ['books','printed matter','stationery','magazine','notebooks','greeting cards','office requisites','packaging materials','plastic bags for packaging','artist supplies','paintbrushes','instructional materials','newsletters','catalogues','posters','bookbinding material','adhesives for stationery'] },
   { code: '012', label: 'Vehicles', kws: ['vehicles','cars','bicycles','automotive parts','motorcycles','boats','aircraft','trucks','electric vehicles','scooters','trailers','vehicle parts','drones','remote control vehicles'] },
+  { code: '040', label: 'Printing, custom manufacturing & material treatment', kws: ['printing','custom manufacturing','3d printing','engraving','tailoring','recycling','laser cutting','metal plating','woodworking','screen printing','embroidery','material treatment'] },
+  { code: '031', label: 'Fresh produce, plants & pet food', kws: ['fresh fruit','fresh vegetables','fresh produce','plants','flowers','seeds','pet food','animal feed','live animals','grains','trees','nursery plants','bulbs'] },
+  { code: '034', label: 'Tobacco & vaping products', kws: ['tobacco','cigarettes','cigars','vape','vaping','e-cigarette','smokers articles','lighters','rolling papers'] },
+  { code: '024', label: 'Textiles & bedding', kws: ['fabric','textiles','bedding','bed linen','towels','curtains','blankets','table linen','sheets'] },
+  { code: '011', label: 'Lighting, heating & cooling apparatus', kws: ['lighting','lamps','heating','air conditioning','water heater','stoves','refrigerators','cooling apparatus','ventilation','led lights'] },
+  { code: '015', label: 'Musical instruments', kws: ['musical instruments','guitar','piano','drums','violin','ukulele','keyboards','amplifiers for instruments'] },
+  { code: '008', label: 'Hand tools & cutlery', kws: ['hand tools','knives','cutlery','razors','scissors','garden tools','forks','spoons'] },
+  { code: '007', label: 'Machines & machine tools', kws: ['machines','machine tools','industrial machinery','engines','motors','pumps','generators','washing machines','power tools','food processing machines'] },
 ];
+
+// Plain-English everyday phrasing per class, merged with each class's kws at
+// match time. These are colloquial glosses of the official entries above (not
+// separate classifications) so ordinary descriptions like "bakery" or
+// "yoga studio" still surface a starting guess. Still a heuristic — confirm
+// against the USPTO ID Manual.
+const BRIDGE_KWS = {
+  '030': ['bakery','bakeshop','bake shop','baked goods','cake','cupcake','cookie','pie','donut','doughnut','muffin','bagel','biscuit','dessert','granola','popcorn','pizza','sandwich','coffee roaster','matcha'],
+  '043': ['bakery','bakeshop','bake shop','bakery cafe','diner','bistro','brewery taproom','juice bar','airbnb','vacation rental','motel','resort','food service','meal delivery'],
+  '041': ['yoga','pilates','fitness class','gym instruction','personal training','dance studio','music lessons','art classes','online course','photography','video production','concert','sports league','tour guide','book club'],
+  '044': ['landscaping','lawn care','gardening','tree service','pet grooming','dog grooming','barber','barbershop','hair salon','nail salon','massage','chiropractor','acupuncture','tattoo','skin care clinic','med spa','pharmacy','nutritionist','dietitian','optometrist'],
+  '045': ['dog walking','pet sitting','house sitting','concierge','wedding officiant','funeral','private investigator','notary','genealogy','astrology','personal shopper','bodyguard','lawyer','trademark service'],
+  '037': ['plumber','plumbing','cleaning','house cleaning','janitorial','maid','handyman','carpentry','carpenter','electrician','painter','car wash','auto repair','mechanic','pest control','locksmith','remodeling','flooring','pressure washing','window cleaning','general contractor','tiling','appliance repair','solar installation'],
+  '039': ['trucking','rideshare','taxi','limo','courier','dog transport','shuttle','tour operator','parking','bike rental','car rental','self storage','mover','freight broker'],
+  '036': ['bookkeeping','accounting','crypto','lending','loans','fintech','wealth management','crowdfunding','realtor','leasing','appraisal'],
+  '035': ['online shop','boutique','consulting','consultant','startup','franchise','staffing','recruiting','seo','social media','branding','bookkeeping services','subscription box','marketplace','dropshipping'],
+  '042': ['web development','web design','app development','it support','cybersecurity','hosting','web hosting','cloud','saas','machine learning','software as a service','data analytics','architecture','graphic design','tech support','ux design'],
+  '009': ['mobile app','downloadable app','game app','video game','ebook','downloadable','headphones','earbuds','smart home','phone case','wearable device','podcast download'],
+  '025': ['t-shirt','hoodie','sweatshirt','jacket','jeans','dress','leggings','activewear','yoga pants','pajamas','lingerie','uniform','sneakers','sandals','beanie','scarf','merch','apparel brand','streetwear'],
+  '003': ['makeup','beauty','lipstick','lotion','soap','candle scent','shampoo','conditioner','deodorant','sunscreen','nail polish','body wash','lip balm','face cream','serum','toothpaste','cleaning products','laundry detergent'],
+  '029': ['deli','butcher','jerky','hummus','soup','nut butter','peanut butter','pickles','canned','frozen meals','plant-based','vegan meat','protein snacks','olive oil','trail mix'],
+  '032': ['kombucha','seltzer','sparkling water','lemonade','smoothie','cold brew','energy drink','sports drink','craft beer','non-alcoholic','mocktail','protein shake','bottled water'],
+  '033': ['bourbon','tequila','mezcal','brandy','cognac','winery','vineyard','distillery','moonshine','cocktail mixers alcoholic','canned cocktail','mead'],
+  '021': ['mug','water bottle','tumbler','plate','bowl','kitchen gadget','cooler','lunch box','pet bowl','candle holder','vase','planter','soap dispenser'],
+  '028': ['plush','board game','card game','puzzle','yoga mat','skateboard','sports equipment','gym equipment','dumbbells','camping games','pool toys'],
+  '016': ['planner','sticker','calendar','paper goods','art supplies','coloring book','magazine','comic','zine','newsletter','wrapping paper'],
+  '020': ['bed frame','shelf','pillow','cushion','bookcase','wardrobe','crib','pet bed','hanger'],
+  '014': ['jewellery','jewelry brand','necklace','bracelet','earring','pendant','smartwatch band','engagement ring'],
+  '018': ['tote','purse','wallet','backpack','duffel','fanny pack','luggage tag','dog leash','dog collar','pet harness','handbag','crossbody','pouch'],
+  '005': ['vitamin','supplement','probiotic','herbal remedy','cbd','hemp','melatonin','protein powder','first aid','pain relief','diaper','baby formula','medical marijuana'],
+  '012': ['bike','ebike','scooter','camper','trailer','golf cart','boat','yacht','wheelchair','stroller'],
+  '038': ['isp','internet provider','wireless','voip','chat app','video conferencing','podcast hosting','live streaming','messaging app'],
+  '010': ['massage gun','hearing aid','cpap','thermometer','pregnancy test','condom','sex toy','dental device','glucose monitor','brace','orthotics'],
+};
+
+// Whole-word match with simple plural tolerance ("cakes" hits "cake", "bar"
+// does not hit "barber"). Keyword and description are compared lowercase.
+function kwMatches(d, k){
+  const stem = k.replace(/([^sui])s$/, '$1').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return new RegExp('(^|[^a-z0-9])' + stem + '(s|es)?($|[^a-z0-9])').test(d);
+}
 
 function suggestClasses(desc){
   const d = desc.toLowerCase();
   const scored = CLASS_MAP.map(c => {
-    // bridgeKws (plain-English glosses of verified entries) score identically
-    // to kws — no separate confidence tier for v1.
-    const terms = c.bridgeKws ? c.kws.concat(c.bridgeKws) : c.kws;
-    const hits = terms.filter(k => d.includes(k)).length;
+    // bridgeKws (plain-English glosses of verified entries) and BRIDGE_KWS
+    // (everyday phrasing) score identically to kws — no separate confidence
+    // tier for v1.
+    const terms = c.kws.concat(c.bridgeKws || [], BRIDGE_KWS[c.code] || []);
+    const hits = new Set(terms.filter(k => kwMatches(d, k))).size;
     return { ...c, hits };
   }).filter(c => c.hits > 0);
-  scored.sort((a,b) => b.hits - a.hits);
+  // Ties: goods classes (001-034) before service classes (035-045).
+  scored.sort((a,b) => b.hits - a.hits || (a.code < '035' ? 0 : 1) - (b.code < '035' ? 0 : 1));
   return scored.slice(0, 4);
 }
 
