@@ -11,6 +11,9 @@
     "url": "https://github.com/MsElectronicKrazy/markstub/issues"
   },
   "license": "MIT",
+  "scripts": {
+    "dev": "npx --yes serve . -l 3000"
+  },
   "author": "Michelle O. Daniel",
   "private": true
 }
