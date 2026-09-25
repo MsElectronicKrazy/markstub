@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://mselectronickrazy.github.io/markstub/sitemap.xml
+Sitemap: https://markstub.vercel.app/sitemap.xml

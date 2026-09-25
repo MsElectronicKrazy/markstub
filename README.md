@@ -15,12 +15,14 @@ results down to a manageable few, so you know what to look at more closely.
   search syntax
 - Narrows results down to a shortlist for your own further review — it is a
   starting point for due diligence, not a substitute for it
-- Runs entirely in the browser — no account, no backend, no data collection
+- Runs entirely in the browser — no account and no backend. The site uses
+  Vercel Web Analytics for anonymous, cookieless page-view counts; nothing you
+  type into the tool is sent anywhere
 
 ## Getting started
 
 Open `index.html` in a browser, or visit the live version at:
-[mselectronickrazy.github.io/markstub](https://mselectronickrazy.github.io/markstub/)
+[markstub.vercel.app](https://markstub.vercel.app/)
 
 ## License
 
