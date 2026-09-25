@@ -1,0 +1,16 @@
+{
+  "name": "markstub",
+  "version": "1.0.0",
+  "description": "A free, open-source trademark search assistant. Single-file static web tool that builds exact-phrase USPTO search queries.",
+  "homepage": "https://markstub.vercel.app/",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/MsElectronicKrazy/markstub.git"
+  },
+  "bugs": {
+    "url": "https://github.com/MsElectronicKrazy/markstub/issues"
+  },
+  "license": "MIT",
+  "author": "Michelle O. Daniel",
+  "private": true
+}
