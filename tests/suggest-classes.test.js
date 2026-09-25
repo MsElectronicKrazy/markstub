@@ -28,6 +28,9 @@ const cases = [
   ['craft kombucha', '032'],
   ['3d printing shop', '040'],
   ['guitar lessons and guitars', '015'],
+  ['sports team', '041', '041'],
+  ['youth baseball league', '041'],
+  ['team jerseys', '025'],
 ];
 cases.forEach(([desc, code, first]) => {
   const got = suggestClasses(desc).map(c => c.code);
