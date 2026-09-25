@@ -22,3 +22,9 @@ node_modules/
 
 # Logs
 *.log
+
+# Secrets / keys
+*.key
+*.pem
+*.p12
+config.local.*
