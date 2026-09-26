@@ -1,11 +1,11 @@
-// Run: npm test — extracts the class heuristic from index.html and checks it.
+// Run: npm test — extracts the search heuristics from index.html and checks them.
 const fs = require('fs');
 const assert = require('assert');
 const html = fs.readFileSync(require('path').join(__dirname, '..', 'index.html'), 'utf8');
 const start = html.indexOf('const CLASS_MAP');
-const end = html.indexOf('// ---------- Variant generation');
-const { suggestClasses, CLASS_MAP } = new Function(
-  html.slice(start, end) + '; return { suggestClasses, CLASS_MAP };')();
+const end = html.indexOf('let selectedClasses');
+const { suggestClasses, CLASS_MAP, generateSoundAlikes, generatePartials } = new Function(
+  html.slice(start, end) + '; return { suggestClasses, CLASS_MAP, generateSoundAlikes, generatePartials };')();
 
 // [description, class expected somewhere in the suggestions, expected first]
 const cases = [
@@ -47,4 +47,12 @@ assert.deepStrictEqual(suggestClasses('   '), []);
 // Every class code is unique.
 const codes = CLASS_MAP.map(c => c.code);
 assert.strictEqual(new Set(codes).size, codes.length, 'duplicate class codes');
+// Name-spelling variants.
+const sa = generateSoundAlikes('michelle daniel');
+['michele daniel','michel daniel','michelle danielle'].forEach(v =>
+  assert(sa.includes(v), `sound-alike missing "${v}", got [${sa}]`));
+// Partial-match words.
+assert.deepStrictEqual(generatePartials('michelle daniel'), ['michelle', 'daniel']);
+assert.deepStrictEqual(generatePartials('workmark'), []);
+assert.deepStrictEqual(generatePartials('Taylor and the Taylor'), ['Taylor']);
 console.log(`ok — ${cases.length} description cases, ${codes.length} classes`);

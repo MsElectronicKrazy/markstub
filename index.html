@@ -364,7 +364,9 @@
       <div class="chips" id="classChips"></div>
 
       <div class="section-title">Exact-phrase query</div>
-      <div class="hint">Paste this into <strong>Expert mode</strong> at tmsearch.uspto.gov — not the plain search box, which splits your phrase into separate words.</div>
+      <div class="note">
+        <strong>Before you paste:</strong> on tmsearch.uspto.gov switch to <strong>Expert</strong>, then set the search-by dropdown to <strong>"Field tag and search builder"</strong>. Every other option (Wordmark, Owner, and so on) either rejects this syntax or splits your phrase into separate words and returns thousands of unrelated marks.
+      </div>
       <div class="toggle-row">
         <input type="checkbox" id="liveOnly" checked>
         <label for="liveOnly">Live marks only</label>
@@ -375,7 +377,7 @@
       </div>
       <a class="open-link" id="openLink" href="https://tmsearch.uspto.gov" target="_blank" rel="noopener">Open USPTO Expert Search →</a>
 
-      <details style="margin-top:14px;">
+      <details open style="margin-top:14px;">
         <summary>Where's Expert mode?</summary>
         <div class="details-body" style="margin-top:8px;">
           On tmsearch.uspto.gov, look for the <strong>Basic / Expert</strong> toggle near the search box (top of the results/search panel). Switch to <strong>Expert</strong>, then in the search-by dropdown choose <strong>"Field tag and search builder"</strong> specifically — other options (Wordmark, Owner, etc.) will reject this query's <code>CM:</code>/<code>IC:</code>/<code>LD:</code> syntax entirely. Paste the query above into the search bar and run it. No USPTO.gov login is required to search — logging in only adds an inline result-summary panel; without one, use the status-lookup box below (backed by TSDR) to check a specific result instead.
@@ -398,8 +400,12 @@
       <div id="compoundHint"></div>
 
       <div class="section-title">Sound-alike — same pronunciation, different spelling</div>
-      <div class="hint">Homophone substitutions worth a quick look — spelling alone can change how many live marks come back.</div>
+      <div class="hint">Homophone and common name-spelling substitutions (Michelle/Michele, Daniel/Danielle) worth a quick look — spelling alone can change how many live marks come back.</div>
       <div class="variant-list" id="soundAlikeList"></div>
+
+      <div class="section-title">Partial matches — one word at a time</div>
+      <div class="hint">Marks that contain just one of your words. Expect a lot of noise — a common first name or surname will match many unrelated marks, so keep your class selected and read only the ones where that word is the whole mark or its dominant part.</div>
+      <div class="variant-list" id="partialList"></div>
 
       <div class="section-title">Stylized — common startup-naming substitutions (k/c, z/s, dropped vowels)</div>
       <div class="hint">Deliberate stylized spelling — not a different word or a reordering, just a letter swapped or dropped the way brand names often do.</div>
@@ -606,6 +612,19 @@ const HOMOPHONE_GROUPS = [
   ['vain','vein','vane'], ['wait','weight'], ['waist','waste'],
   ['ware','wear','where'], ['way','weigh'], ['weak','week'],
   ['which','witch'], ['whole','hole'], ['wine','whine'],
+  // Common first-name spellings — same pronunciation or near-identical, and
+  // the variants people actually file under.
+  ['michelle','michele','michel','mishelle'], ['daniel','danielle','danial'],
+  ['john','jon'], ['sean','shawn','shaun'], ['steven','stephen'],
+  ['catherine','katherine','kathryn','katharine'], ['brian','bryan'],
+  ['eric','erik'], ['sara','sarah'], ['allan','allen','alan'], ['mark','marc'],
+  ['philip','phillip'], ['ann','anne'], ['matthew','mathew'], ['lisa','liza'],
+  ['megan','meghan'], ['laurie','lori','lorie'], ['isabel','isabelle','isobel'],
+  ['nicole','nichole'], ['jennifer','jenifer'], ['rachel','rachael','rachelle'],
+  ['emily','emilie'], ['ashley','ashleigh'], ['kristen','kristin','kirsten'],
+  ['christopher','kristopher'], ['zachary','zachery','zackary'],
+  ['smith','smyth'], ['jeffrey','jeffery'], ['gary','garry'], ['terry','terri'],
+  ['carl','karl'], ['cody','codey'], ['jordan','jordyn'], ['taylor','tayler'],
 ];
 const HOMOPHONE_MAP = {};
 HOMOPHONE_GROUPS.forEach(group => {
@@ -628,7 +647,7 @@ function generateSoundAlikes(phrase){
       if(variant.toLowerCase() !== lowerPhrase) set.add(variant);
     });
   });
-  return [...set].slice(0, 8);
+  return [...set].slice(0, 12);
 }
 
 // ---------- Stylized-spelling variants ----------
@@ -688,6 +707,21 @@ function generateStylizedVariants(phrase){
 // ---------- Compound-word (run-together) detection ----------
 // No dictionary-based segmentation here on purpose (see README roadmap) — this
 // only handles the two cases we can detect cheaply and reliably.
+// Single words from a multi-word phrase, for a "which marks contain just this
+// word" check. Skips connectors and very short words that would only add noise.
+const PARTIAL_SKIP = new Set(['a','an','and','the','of','for','in','on','to','at','by','or','&','co','inc','llc']);
+function generatePartials(phrase){
+  const words = phrase.trim().split(/\s+/).filter(Boolean);
+  if(words.length < 2) return [];
+  const out = [];
+  words.forEach(w => {
+    const clean = w.replace(/[^\p{L}\p{N}'-]/gu, '');
+    if(clean.length < 3 || PARTIAL_SKIP.has(clean.toLowerCase())) return;
+    if(!out.some(o => o.toLowerCase() === clean.toLowerCase())) out.push(clean);
+  });
+  return out;
+}
+
 function getCompoundHint(phrase){
   const trimmed = phrase.trim();
   if(/\s/.test(trimmed)) return null;
@@ -772,6 +806,7 @@ function refreshQueries(){
   renderSoundAlikes(currentPhrase);
   renderStylized(currentPhrase);
   renderCompoundHint(currentPhrase);
+  renderPartials(currentPhrase);
 }
 
 // Deliberately one query per variant, never combined via CM:(...) grouping —
@@ -817,6 +852,20 @@ function renderSoundAlikes(phrase){
   const liveOnly = document.getElementById('liveOnly').checked;
   variants.forEach(v => {
     renderVariantRow(list, v, buildMainQuery(v, selectedClasses, liveOnly));
+  });
+}
+
+function renderPartials(phrase){
+  const list = document.getElementById('partialList');
+  list.innerHTML = '';
+  const words = generatePartials(phrase);
+  if(words.length === 0){
+    list.innerHTML = '<div class="hint">Only shown for phrases of two or more words.</div>';
+    return;
+  }
+  const liveOnly = document.getElementById('liveOnly').checked;
+  words.forEach(w => {
+    renderVariantRow(list, w, buildMainQuery(w, selectedClasses, liveOnly));
   });
 }
 
